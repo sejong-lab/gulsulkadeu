@@ -511,6 +511,144 @@
     background: color-mix(in srgb, var(--cat-color, var(--accent)) 8%, var(--surface2));
   }
   .answer-item.dimmed { opacity: .3; transition: opacity .25s; }
+
+  /* ════════════════════════════════════
+     카드 레이아웃 전면 재설계 (ck-*)
+     ════════════════════════════════════ */
+  .card { padding: 0 !important; }
+
+  /* ── 카드 헤더 ── */
+  .ck-hdr {
+    display: flex; align-items: center; gap: 7px;
+    padding: 11px 16px 10px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .ck-cat-tag {
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: var(--cat-color, var(--accent));
+    border: 1px solid color-mix(in srgb, var(--cat-color, var(--accent)) 40%, transparent);
+    padding: 2px 8px; border-radius: 4px;
+    background: color-mix(in srgb, var(--cat-color, var(--accent)) 8%, transparent);
+  }
+  .ck-sub-tag { font-size: 11px; color: var(--text-muted); }
+  .ck-freq { font-size: 11px; color: #f0a030; letter-spacing: -1px; }
+  .ck-num { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+
+  /* ── 형광펜 질문 ── */
+  .ck-q-wrap { padding: 16px 18px 15px; border-bottom: 1px solid var(--border); }
+  .ck-q-hl {
+    font-size: 17px; font-weight: 700; line-height: 1.65; color: var(--text);
+    background: color-mix(in srgb, #f0a030 14%, transparent);
+    padding: 2px 5px; border-radius: 3px;
+    border-bottom: 1.5px solid color-mix(in srgb, #f0a030 36%, transparent);
+    -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  }
+
+  /* ── 공용 뱃지 라벨 ── */
+  .ck-badge {
+    font-family: var(--mono); font-size: 9px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--cat-color, var(--accent)); flex-shrink: 0;
+  }
+
+  /* ── 요약 ── */
+  .ck-summary {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--cat-color, var(--accent)) 4%, var(--surface));
+  }
+  .ck-summary-txt { font-size: 13px; line-height: 1.55; color: var(--text-muted); word-break: keep-all; }
+
+  /* ── 순서 흐름 ── */
+  .ck-flow-wrap {
+    display: flex; align-items: center; gap: 5px;
+    padding: 9px 16px; border-bottom: 1px solid var(--border);
+    background: var(--surface2); overflow-x: auto; scrollbar-width: none;
+  }
+  .ck-flow-wrap::-webkit-scrollbar { display: none; }
+
+  /* ── 답변 헤더 (블러 버튼) ── */
+  .ck-ans-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 16px 7px;
+  }
+  .ck-blur-btn {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 11px;
+    border: 1px solid var(--border); background: var(--surface2);
+    border-radius: 6px; font-size: 11px; font-weight: 600;
+    font-family: var(--sans); color: var(--text-muted);
+    cursor: pointer; transition: all .18s; white-space: nowrap;
+  }
+  .ck-blur-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .ck-blur-btn.on {
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface2));
+    border-color: var(--accent); color: var(--accent);
+  }
+
+  /* ── 답변 항목 (블러 + 스포트라이트) ── */
+  .ck-items { padding: 0 14px 10px; display: flex; flex-direction: column; gap: 6px; }
+  .ck-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; background: var(--surface2);
+    border-radius: 10px; border: 1px solid transparent;
+    cursor: pointer;
+    transition: border-color .15s, opacity .25s, background .2s;
+  }
+  .ck-item:hover { border-color: var(--border); }
+  .ck-item.focused {
+    border-color: var(--cat-color, var(--accent)) !important;
+    background: color-mix(in srgb, var(--cat-color, var(--accent)) 8%, var(--surface2));
+  }
+  .ck-item.dimmed { opacity: .24; }
+  .ck-item-n {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    color: var(--cat-color, var(--accent));
+    min-width: 18px; margin-top: 1px; flex-shrink: 0;
+    transition: opacity .3s;
+  }
+  .ck-item-t {
+    font-size: 13px; line-height: 1.55; color: var(--text);
+    word-break: keep-all; overflow-wrap: break-word;
+    transition: filter .3s;
+  }
+  .ck-item-t em { font-style: normal; color: var(--cat-color, var(--accent)); font-weight: 600; }
+  .ck-item.blurred .ck-item-t { filter: blur(5px); user-select: none; }
+  .ck-item.blurred .ck-item-n { opacity: .35; }
+
+  /* ── 키워드 칩 ── */
+  .ck-kw-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 14px 12px; flex-wrap: wrap;
+  }
+  .ck-kw-label {
+    font-family: var(--mono); font-size: 9px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); flex-shrink: 0;
+  }
+  .ck-kw-chip {
+    font-size: 11px; color: var(--text-muted);
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 2px 8px; border-radius: 20px;
+  }
+
+  /* ── 추가설명 아코디언 ── */
+  .ck-extra-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 16px;
+    background: color-mix(in srgb, var(--cat-color, var(--accent)) 6%, var(--surface2));
+    border-top: 1px solid var(--border); cursor: pointer; transition: background .18s;
+  }
+  .ck-extra-hdr:hover { background: color-mix(in srgb, var(--cat-color, var(--accent)) 12%, var(--surface2)); }
+  .ck-chv { font-size: 11px; color: var(--cat-color, var(--accent)); }
+  .ck-extra-body { max-height: 0; overflow: hidden; transition: max-height .38s cubic-bezier(.4,0,.2,1); }
+  .ck-extra-body.open { max-height: 400px; }
+  .ck-extra-txt {
+    padding: 12px 16px 14px; font-size: 13px;
+    line-height: 1.65; color: var(--text-muted); word-break: keep-all;
+  }
   .hidden { display: none !important; }
   .stat-chip { display:inline-flex; align-items:center; gap:3px; font-size:10px; font-family:var(--mono); color:var(--text-muted); background:var(--border); padding:2px 8px; border-radius:10px; white-space:nowrap; }
   .xfl { font-size:9px; color:var(--text-dim); white-space:nowrap; font-family:var(--mono); letter-spacing:.05em; min-width:24px; flex-shrink:0; }
@@ -3353,12 +3491,12 @@ function tapItem(idx) {
 }
 
 function reapplyCardState() {
-  const btn = document.querySelector('.blur-toggle');
+  const btn = document.querySelector('.ck-blur-btn');
   if (btn) {
-    btn.classList.toggle('active', blurOn);
+    btn.classList.toggle('on', blurOn);
     btn.innerHTML = blurOn ? '🫣 가리는 중' : '👁 답 가리기';
   }
-  document.querySelectorAll('#card .answer-item').forEach((el, i) => {
+  document.querySelectorAll('#card .ck-item').forEach((el, i) => {
     const isBlurred = blurOn && !revealedItems.has(i);
     const isFocused = (focusedItem === i);
     const isDimmed = (focusedItem !== null) && !isFocused;
@@ -3402,82 +3540,77 @@ function render() {
   const total = filteredCards.length;
   const color = CAT_COLORS[card.cat] || '#5b6af0';
 
-  // progress
   document.getElementById('progressFill').style.width = `${((currentIndex + 1) / total) * 100}%`;
   document.getElementById('progressText').textContent = `${currentIndex + 1} / ${total}`;
   document.getElementById('catLabel').textContent = currentCat === '전체' ? card.cat + ' · ' + card.sub : card.sub;
-
-  // nav
   document.getElementById('prevBtn').disabled = currentIndex === 0;
   document.getElementById('nextBtn').disabled = currentIndex === total - 1;
 
-  // flow html
   const flowHTML = card.flow.map(f =>
     f === '→' || f === '↔' || f === '←'
       ? `<span class="flow-arrow">${f}</span>`
       : `<span class="flow-step">${f}</span>`
   ).join('');
 
-  // items html
   const itemsHTML = card.items.map((item, idx) => `
-    <div class="answer-item" onclick="tapItem(${idx})">
-      <span class="answer-num">${item.n}</span>
-      <span class="answer-text">${item.t}</span>
+    <div class="ck-item" onclick="tapItem(${idx})">
+      <span class="ck-item-n">${item.n}</span>
+      <span class="ck-item-t">${item.t}</span>
     </div>
   `).join('');
 
-  const blurHeaderHTML = `
-    <div class="answer-header">
-      <span class="answer-header-label">답변 항목</span>
-      <button class="blur-toggle${blurOn ? ' active' : ''}" onclick="toggleBlur(); event.stopPropagation();">${blurOn ? '🫣 가리는 중' : '👁 답 가리기'}</button>
-    </div>
-  `;
+  const kwHTML = card.keywords.map(k => `<span class="ck-kw-chip">${k}</span>`).join('');
 
-  // keywords html
-  const kwHTML = card.keywords.map(k => `<span class="kw-chip">${k}</span>`).join('');
-
-  // extra html
   const extraHTML = card.extra ? `
-    <div class="extra">
-      <div class="extra-label">추가설명</div>
-      <div class="extra-text">${card.extra.replace(/\n/g, '<br>')}</div>
+    <div class="ck-extra-hdr" onclick="this.nextElementSibling.classList.toggle('open'); this.querySelector('.ck-chv').textContent = this.nextElementSibling.classList.contains('open') ? '▲' : '▼';">
+      <span class="ck-badge">추가 설명</span>
+      <span class="ck-chv">▼</span>
+    </div>
+    <div class="ck-extra-body">
+      <div class="ck-extra-txt">${card.extra.replace(/\n/g, '<br>')}</div>
     </div>
   ` : '';
 
   document.getElementById('card').style.setProperty('--cat-color', color);
   document.getElementById('card').innerHTML = `
-    <div class="card-meta">
-      <span class="cat-tag">${card.cat}</span>
-      <span class="cat-tag" style="--cat-color:${color};opacity:0.7">${card.sub}</span>
-      ${card.freq ? `<span style="font-size:11px;color:#f0a030;letter-spacing:-.5px;">${'★'.repeat(card.freq)}</span>` : ''}
-      <span class="card-num">#${String(currentIndex + 1).padStart(2, '0')}</span>
+    <div class="ck-hdr">
+      <span class="ck-cat-tag">${card.cat}</span>
+      <span class="ck-sub-tag">${card.sub}</span>
+      ${card.freq ? `<span class="ck-freq">${'★'.repeat(card.freq)}</span>` : ''}
+      <span class="ck-num">#${String(currentIndex + 1).padStart(2, '0')}</span>
     </div>
-    <div class="question"><span class="question-hl">${card.q}</span></div>
-    <div class="summary-row">
-      <span class="summary-label">요약</span>
-      <span class="summary-text">${card.summary}</span>
+    <div class="ck-q-wrap">
+      <span class="ck-q-hl">${card.q}</span>
     </div>
-    <div class="flow">
-      <span class="flow-label">순서</span>
+    <div class="ck-summary">
+      <span class="ck-badge">요약</span>
+      <span class="ck-summary-txt">${card.summary}</span>
+    </div>
+    <div class="ck-flow-wrap">
+      <span class="ck-badge">순서</span>
       ${flowHTML}
     </div>
-    ${blurHeaderHTML}
-    <div class="answer-list">${itemsHTML}</div>
-    <div class="keywords-row">
-      <span class="kw-label">키워드</span>
+    <div class="ck-ans-hdr">
+      <span class="ck-badge">답변 항목</span>
+      <button class="ck-blur-btn${blurOn ? ' on' : ''}" onclick="toggleBlur(); event.stopPropagation();">
+        ${blurOn ? '🫣 가리는 중' : '👁 답 가리기'}
+      </button>
+    </div>
+    <div class="ck-items">${itemsHTML}</div>
+    <div class="ck-kw-row">
+      <span class="ck-kw-label">키워드</span>
       ${kwHTML}
     </div>
     ${extraHTML}
   `;
 
-  // re-animate
   const el = document.getElementById('card');
   el.style.animation = 'none';
-  el.offsetHeight; // reflow
+  el.offsetHeight;
   el.style.animation = '';
-  // 블러/스포트라이트 상태 적용
   reapplyCardState();
 }
+
 
 function toggleTheme() {
   const isDark = document.documentElement.classList.toggle('dark');
