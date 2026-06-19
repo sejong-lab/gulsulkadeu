@@ -463,6 +463,54 @@
   }
   .shuffle-btn:hover { border-color: var(--accent4); color: var(--accent4); }
 
+
+  /* ── 형광펜 하이라이트 ── */
+  .question-hl {
+    background: rgba(240,160,48,0.13);
+    padding: 2px 5px;
+    border-radius: 3px;
+    border-bottom: 1.5px solid rgba(240,160,48,0.35);
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  /* ── 블러 토글 버튼 ── */
+  .answer-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .answer-header-label {
+    font-family: var(--mono);
+    font-size: 9px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--text-dim);
+  }
+  .blur-toggle {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    border-radius: 6px;
+    font-size: 11px; font-weight: 600; font-family: var(--sans);
+    color: var(--text-muted); cursor: pointer;
+    transition: all 0.18s;
+  }
+  .blur-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .blur-toggle.active {
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface2));
+    border-color: var(--accent); color: var(--accent);
+  }
+
+  /* ── 블러 & 스포트라이트 ── */
+  .answer-item { cursor: pointer; }
+  .answer-item.blurred .answer-text {
+    filter: blur(5px); user-select: none; transition: filter .3s;
+  }
+  .answer-item.blurred .answer-num { opacity: .4; transition: opacity .3s; }
+  .answer-item.focused {
+    border-color: var(--cat-color, var(--accent)) !important;
+    background: color-mix(in srgb, var(--cat-color, var(--accent)) 8%, var(--surface2));
+  }
+  .answer-item.dimmed { opacity: .3; transition: opacity .25s; }
   .hidden { display: none !important; }
   .stat-chip { display:inline-flex; align-items:center; gap:3px; font-size:10px; font-family:var(--mono); color:var(--text-muted); background:var(--border); padding:2px 8px; border-radius:10px; white-space:nowrap; }
   .xfl { font-size:9px; color:var(--text-dim); white-space:nowrap; font-family:var(--mono); letter-spacing:.05em; min-width:24px; flex-shrink:0; }
@@ -3284,6 +3332,41 @@ const ALL_CARDS = [
 let currentCat = '전체';
 let filteredCards = [...ALL_CARDS];
 let currentIndex = 0;
+let blurOn = false;
+let revealedItems = new Set();
+let focusedItem = null;
+
+
+function toggleBlur() {
+  blurOn = !blurOn;
+  revealedItems = new Set();
+  focusedItem = null;
+  reapplyCardState();
+}
+
+function tapItem(idx) {
+  if (blurOn && !revealedItems.has(idx)) {
+    revealedItems.add(idx);
+  }
+  focusedItem = (focusedItem === idx) ? null : idx;
+  reapplyCardState();
+}
+
+function reapplyCardState() {
+  const btn = document.querySelector('.blur-toggle');
+  if (btn) {
+    btn.classList.toggle('active', blurOn);
+    btn.innerHTML = blurOn ? '🫣 가리는 중' : '👁 답 가리기';
+  }
+  document.querySelectorAll('#card .answer-item').forEach((el, i) => {
+    const isBlurred = blurOn && !revealedItems.has(i);
+    const isFocused = (focusedItem === i);
+    const isDimmed = (focusedItem !== null) && !isFocused;
+    el.classList.toggle('blurred', isBlurred);
+    el.classList.toggle('focused', isFocused);
+    el.classList.toggle('dimmed', isDimmed);
+  });
+}
 
 function filterCat(cat, el) {
   currentCat = cat;
@@ -3291,11 +3374,15 @@ function filterCat(cat, el) {
   el.classList.add('active');
   filteredCards = cat === '전체' ? [...ALL_CARDS] : ALL_CARDS.filter(c => c.cat === cat);
   currentIndex = 0;
+  revealedItems = new Set();
+  focusedItem = null;
   render();
 }
 
 function move(dir) {
   currentIndex = Math.max(0, Math.min(filteredCards.length - 1, currentIndex + dir));
+  revealedItems = new Set();
+  focusedItem = null;
   render();
 }
 
@@ -3305,6 +3392,8 @@ function shuffle() {
     [filteredCards[i], filteredCards[j]] = [filteredCards[j], filteredCards[i]];
   }
   currentIndex = 0;
+  revealedItems = new Set();
+  focusedItem = null;
   render();
 }
 
@@ -3330,12 +3419,19 @@ function render() {
   ).join('');
 
   // items html
-  const itemsHTML = card.items.map(item => `
-    <div class="answer-item">
+  const itemsHTML = card.items.map((item, idx) => `
+    <div class="answer-item" onclick="tapItem(${idx})">
       <span class="answer-num">${item.n}</span>
       <span class="answer-text">${item.t}</span>
     </div>
   `).join('');
+
+  const blurHeaderHTML = `
+    <div class="answer-header">
+      <span class="answer-header-label">답변 항목</span>
+      <button class="blur-toggle${blurOn ? ' active' : ''}" onclick="toggleBlur(); event.stopPropagation();">${blurOn ? '🫣 가리는 중' : '👁 답 가리기'}</button>
+    </div>
+  `;
 
   // keywords html
   const kwHTML = card.keywords.map(k => `<span class="kw-chip">${k}</span>`).join('');
@@ -3356,7 +3452,7 @@ function render() {
       ${card.freq ? `<span style="font-size:11px;color:#f0a030;letter-spacing:-.5px;">${'★'.repeat(card.freq)}</span>` : ''}
       <span class="card-num">#${String(currentIndex + 1).padStart(2, '0')}</span>
     </div>
-    <div class="question">${card.q}</div>
+    <div class="question"><span class="question-hl">${card.q}</span></div>
     <div class="summary-row">
       <span class="summary-label">요약</span>
       <span class="summary-text">${card.summary}</span>
@@ -3365,6 +3461,7 @@ function render() {
       <span class="flow-label">순서</span>
       ${flowHTML}
     </div>
+    ${blurHeaderHTML}
     <div class="answer-list">${itemsHTML}</div>
     <div class="keywords-row">
       <span class="kw-label">키워드</span>
@@ -3378,6 +3475,8 @@ function render() {
   el.style.animation = 'none';
   el.offsetHeight; // reflow
   el.style.animation = '';
+  // 블러/스포트라이트 상태 적용
+  reapplyCardState();
 }
 
 function toggleTheme() {
