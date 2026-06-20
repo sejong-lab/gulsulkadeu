@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>생활스포츠지도사 2급 보디빌딩 · 구술카드</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
@@ -41,7 +41,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
 /* ── 필터 바 ── */
 .filter-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:6px 12px 0;}
-.filter-main{display:flex;gap:4px;align-items:center;padding-bottom:6px;}
+.filter-main{display:flex;flex-wrap:wrap;gap:4px;row-gap:6px;align-items:center;padding-bottom:6px;}
 .btn-flt{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.04em;padding:5px 12px;border:1.5px solid var(--border);border-radius:6px;background:transparent;color:var(--text-md);cursor:pointer;white-space:nowrap;transition:all .12s;}
 .btn-flt:hover{border-color:var(--accent);color:var(--text);}
 .btn-flt.act{background:var(--accent);border-color:var(--accent);color:#fff;}
@@ -59,7 +59,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
 /* ── 진행 영역 : 좌 "과목 (소분류)" / 우 진행바+별표+숫자 ── */
 .prog-area{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:9px 13px 8px;}
-.prog-subject{font-size:15px;font-weight:800;letter-spacing:-.01em;line-height:1.3;padding:1px 0 1px 11px;border-left:3px solid var(--accent);}
+.prog-subject{flex:1;min-width:0;font-size:15px;font-weight:800;letter-spacing:-.01em;line-height:1.3;padding:1px 0 1px 11px;border-left:3px solid var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .prog-subject .ps-cat{font-weight:800;}
 .prog-subject .ps-sub{font-weight:500;color:var(--text-md);font-size:13px;margin-left:3px;}
 .prog-right{width:50%;flex-shrink:0;display:flex;flex-direction:column;gap:5px;}
@@ -176,6 +176,29 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
 #card{animation:fadeUp .18s ease;}
+
+/* ── 구형 브라우저(color-mix 미지원) 폴백 ── */
+@supports not (background: color-mix(in srgb, red, blue)){
+  .ci.open{background:var(--surface2);}
+  .ck-q-hint{border-color:var(--accent);}
+  #card.allopen .ck-q-hint{background:var(--surface2);}
+  .ck-def-btn.open,.ck-prin-btn.open{background:var(--surface2);}
+  .pf-step{background:var(--surface2);color:var(--accent);}
+  .gloss-item{border-bottom-color:var(--border);}
+  .btn-flt:hover,.btn-sub:hover,.btn-nav:hover:not(:disabled){background:var(--surface2);}
+  .dday-badge{box-shadow:0 2px 10px rgba(0,0,0,.18);}
+  .ck-timer-btn.running{background:var(--surface2);}
+  .prog-subject{border-left-color:var(--accent);}
+}
+
+@media (max-width:360px){
+  .btn-flt{padding:5px 9px;}
+  .btn-wrong{padding:5px 7px;}
+  .filter-bar{padding-left:8px;padding-right:8px;}
+  .ck-q-txt{font-size:15px;}
+  .prog-subject{font-size:13.5px;}
+  .topbar{padding-left:10px;padding-right:10px;}
+}
 
 
 </style>
@@ -3064,6 +3087,193 @@ const GLOSSARY = {
     { t:'글리세롤', d:'중성지방 분해 시 나오는 포도당 재료' },
     { t:'당신생 원료', d:'젖산·아미노산·글리세롤 → 간에서 포도당화' },
   ],
+
+  // ── 스포츠영양학 ──
+  '탄수화물을 에너지원으로 사용할 때의 단점은?': [
+    { t:'글리코겐', d:'근육·간에 저장된 포도당 형태의 에너지' },
+    { t:'인슐린', d:'혈당을 낮추는 호르몬(글리코겐 합성 촉진)' },
+    { t:'벽(The Wall)', d:'글리코겐 고갈로 갑자기 탈진하는 현상(보킹)' },
+  ],
+  '지방을 에너지원으로 사용할 때의 단점은?': [
+    { t:'베타산화', d:'지방산을 아세틸-CoA로 잘게 쪼개는 과정' },
+    { t:'케톤체', d:'지방 불완전 연소 시 생기는 산성 부산물' },
+    { t:'동원 속도', d:'에너지원이 ATP로 전환되는 빠르기(지방은 느림)' },
+  ],
+  '단백질을 에너지원으로 사용할 때의 단점은?': [
+    { t:'이화작용', d:'조직을 분해해 에너지를 얻는 작용(근손실)' },
+    { t:'암모니아', d:'아미노산 분해 시 생기는 독성 물질' },
+    { t:'요소', d:'암모니아를 간에서 처리해 신장으로 배출하는 형태' },
+  ],
+  '운동 전 당(설탕·단순당) 섭취가 오히려 저혈당을 유발하는 이유는?': [
+    { t:'단순당', d:'빠르게 흡수돼 혈당을 급등시키는 당(설탕 등)' },
+    { t:'반응성 저혈당', d:'인슐린 과분비로 혈당이 급락하는 현상' },
+    { t:'혈당지수(GI)', d:'음식이 혈당을 올리는 속도 지표(포도당=100)' },
+  ],
+  '운동 전 탄수화물을 섭취하는 이유는?': [
+    { t:'글리코겐', d:'근육·간에 저장된 운동 에너지원' },
+    { t:'글루카곤', d:'혈당을 높이는 호르몬(글리코겐 분해)' },
+    { t:'카타볼릭', d:'근육을 분해해 에너지로 쓰는 이화 상태' },
+  ],
+  '영양소 결핍 시 여성에게 나타나는 증상은?': [
+    { t:'여성 트라이어드', d:'에너지부족+무월경+골다공증 3대 징후' },
+    { t:'RED-S', d:'에너지 부족으로 생식·골밀도가 저하되는 상태' },
+    { t:'에스트로겐', d:'여성호르몬, 부족 시 무월경·골밀도 저하' },
+  ],
+  '운동에서 단백질의 역할은?': [
+    { t:'근단백 합성(MPS)', d:'운동 후 손상된 근섬유를 재건·강화' },
+    { t:'mTOR', d:'단백질 합성을 켜는 핵심 신호 경로' },
+    { t:'질소 균형', d:'섭취 질소>배출이면 근성장 조건(양의 균형)' },
+  ],
+  '카보로딩(탄수화물 로딩)이란?': [
+    { t:'카보로딩', d:'시합 전 글리코겐을 최대로 채우는 식이법' },
+    { t:'글리코겐 초과보상', d:'고갈 후 고탄수 섭취로 평소보다 더 저장' },
+    { t:'볼륨', d:'글리코겐 1g당 물 3~4g 저장 → 근육 부피감' },
+  ],
+  '포화지방과 불포화지방의 차이는?': [
+    { t:'포화지방', d:'동물성·상온 고체, 과잉 시 LDL↑(동맥경화)' },
+    { t:'불포화지방', d:'식물성·상온 액체, 심혈관에 이로움' },
+    { t:'트랜스지방', d:'가공 불포화지방, LDL↑HDL↓로 가장 해로움' },
+  ],
+  '펌핑(Pumping)이란?': [
+    { t:'펌핑', d:'운동 중 근육에 혈액이 몰려 일시적으로 부푸는 것' },
+    { t:'모세혈관', d:'근육에 혈액·산소를 공급하는 가는 혈관' },
+  ],
+  '데피니션(Definition)과 세퍼레이션(Separation)이란?': [
+    { t:'데피니션', d:'근육 윤곽이 또렷하게 드러나는 선명도' },
+    { t:'세퍼레이션', d:'근육 다발 사이 경계가 갈라져 보이는 분리도' },
+    { t:'컷팅', d:'체지방을 줄여 선명한 근육질로 만드는 과정' },
+  ],
+  'Set(세트)와 Rep(반복)이란?': [
+    { t:'Rep(반복)', d:'동작을 1회 완수하는 것' },
+    { t:'Set(세트)', d:'정해진 반복을 묶은 훈련 단위' },
+    { t:'1RM', d:'한 번만 들 수 있는 최대 무게' },
+    { t:'FITT 원칙', d:'빈도·강도·시간·형태(운동 처방 4요소)' },
+  ],
+  '비타민 C의 역할과 기능은?': [
+    { t:'수용성 비타민', d:'과잉 시 소변 배출, 축적 안 됨(B군·C)' },
+    { t:'콜라겐', d:'피부·뼈·혈관 결합조직을 이루는 단백질' },
+    { t:'항산화', d:'활성산소를 제거해 세포 손상을 막는 작용' },
+    { t:'괴혈병', d:'비타민C 결핍으로 잇몸 출혈·상처 지연' },
+  ],
+  'BCAA란? 크레아틴의 효과는?': [
+    { t:'BCAA', d:'류신·이소류신·발린 3가지 분지사슬 아미노산' },
+    { t:'류신', d:'근단백 합성을 가장 강하게 자극하는 아미노산' },
+    { t:'크레아틴', d:'ATP-PC 재합성을 도와 순발력·근력↑ 보충제' },
+  ],
+  '렙틴과 그렐린, 아나볼릭·카타볼릭 호르몬을 정리하시오': [
+    { t:'아나볼릭', d:'조직을 합성·성장시키는 동화작용(테스토스테론)' },
+    { t:'카타볼릭', d:'조직을 분해하는 이화작용(코르티솔)' },
+    { t:'코르티솔', d:'스트레스·과훈련 시 분비되는 근분해 호르몬' },
+  ],
+  'LDL과 HDL 콜레스테롤의 차이는?': [
+    { t:'HDL', d:'콜레스테롤을 간으로 운반(이로운 고밀도지단백)' },
+    { t:'LDL', d:'콜레스테롤을 혈관에 침착(해로운 저밀도지단백)' },
+    { t:'동맥경화', d:'혈관에 플라크가 쌓여 좁아지는 상태' },
+  ],
+  '피하지방과 내장지방의 차이는?': [
+    { t:'피하지방', d:'피부 아래 지방(체온유지·보호·저장)' },
+    { t:'내장지방', d:'장기 주변 지방, 과다 시 대사질환 위험↑' },
+    { t:'제지방', d:'지방을 뺀 나머지(근육·뼈·수분)' },
+  ],
+  '3대 에너지원과 6대 필수 영양소는?': [
+    { t:'3대 에너지원', d:'탄수화물·단백질·지방' },
+    { t:'6대 영양소', d:'3대 + 비타민·무기질·물' },
+    { t:'에너지 밀도', d:'탄수 4·단백 4·지방 9 kcal/g' },
+  ],
+  '필수지방산과 필수아미노산이란?': [
+    { t:'필수지방산', d:'체내 합성 불가, 꼭 섭취(오메가-3·6)' },
+    { t:'필수아미노산', d:'체내 합성 불가한 9종 아미노산' },
+    { t:'완전 단백질', d:'필수아미노산 9종을 모두 가진 단백질(달걀·육류)' },
+  ],
+  '기초대사량(BMR)이란? 카르보넨 공식은?': [
+    { t:'기초대사량(BMR)', d:'생명 유지에 필요한 최소 에너지' },
+    { t:'카르보넨 공식', d:'목표심박수=(최대−안정시)×강도+안정시' },
+    { t:'최대심박수', d:'220 − 나이' },
+  ],
+  '수분의 역할과 탈수 증상은?': [
+    { t:'탈수', d:'체내 수분이 부족해진 상태' },
+    { t:'전해질', d:'나트륨·칼륨 등 수축·신경전달에 필요한 이온' },
+    { t:'체온조절', d:'땀·혈류로 열을 내보내는 수분의 핵심 기능' },
+  ],
+
+  // ── 기능해부학 ──
+  'ROM(가동범위)이란?': [
+    { t:'ROM(가동범위)', d:'관절이 움직일 수 있는 최대 각도 범위' },
+    { t:'능동 ROM', d:'스스로 근육을 써서 움직이는 범위' },
+    { t:'수동 ROM', d:'외부 힘으로 움직이는 범위(능동보다 큼)' },
+  ],
+  '대흉근의 기시점과 정지점은?': [
+    { t:'기시(Origin)', d:'근육이 시작되는(고정된) 쪽 부착점' },
+    { t:'정지(Insertion)', d:'근육이 끝나는(움직이는) 쪽 부착점' },
+    { t:'수평내전', d:'팔을 몸 앞 안쪽으로 모으는 동작(대흉근 주기능)' },
+  ],
+  '대퇴사두근 중 고관절과 무릎관절을 모두 지나는 근육은?': [
+    { t:'대퇴직근', d:'대퇴사두 중 유일하게 고관절+무릎 지나는 근육' },
+    { t:'2관절근', d:'두 관절을 동시에 지나는 근육' },
+    { t:'광근(Vasti)', d:'무릎관절만 지나는 나머지 3개 대퇴사두' },
+  ],
+  '단순관절운동(단관절)과 복합관절운동(다관절)을 설명하고 예시를 드시오': [
+    { t:'단관절(Isolation)', d:'한 관절만 써서 한 근육을 집중 자극' },
+    { t:'다관절(Compound)', d:'두 관절 이상·여러 근육을 동시 사용' },
+    { t:'협력근', d:'주동근을 보조·안정화하는 근육' },
+  ],
+  '근수축의 종류(등척성·등장성·등속성)를 설명하시오': [
+    { t:'등척성', d:'길이 변화 없이 힘만 내는 수축(플랭크)' },
+    { t:'단축성', d:'근육이 짧아지며 힘 내는 수축(들 때)' },
+    { t:'신장성', d:'근육이 늘어나며 힘 내는 수축(내릴 때, 근손상↑)' },
+    { t:'등속성', d:'일정 속도를 유지하며 수축(재활 기기)' },
+  ],
+  '회전근개(로테이터 커프)란? 4개 근육은?': [
+    { t:'회전근개', d:'어깨를 안정화하는 4개 근육(극상·극하·소원·견갑하)' },
+    { t:'극상근', d:'어깨 외전(팔 옆으로 올리기)을 시작' },
+    { t:'견갑하근', d:'어깨 내회전 담당' },
+  ],
+  '주동근·길항근·협력근의 차이는?': [
+    { t:'주동근(Agonist)', d:'동작을 직접 만드는 근육' },
+    { t:'길항근(Antagonist)', d:'주동근과 반대로 작용하는 근육' },
+    { t:'협력근(Synergist)', d:'주동근을 보조·안정화하는 근육' },
+  ],
+  '시상면·관상면·수평면이란?': [
+    { t:'시상면', d:'몸을 좌우로 나누는 면 → 굴곡·신전' },
+    { t:'관상면', d:'몸을 앞뒤로 나누는 면 → 내전·외전' },
+    { t:'수평면', d:'몸을 위아래로 나누는 면 → 내·외회전' },
+  ],
+  '골격근·심장근·내장근(평활근)의 차이는?': [
+    { t:'골격근', d:'뼈에 붙은 수의근(가로무늬), 훈련 대상' },
+    { t:'심장근', d:'심장의 불수의근(가로무늬), 자율 박동' },
+    { t:'평활근', d:'내장·혈관의 불수의근(민무늬)' },
+  ],
+  '대퇴이두근(햄스트링) 구성과 기능은?': [
+    { t:'햄스트링', d:'허벅지 뒤 3근육(대퇴이두·반막양·반건양근)' },
+    { t:'고관절 신전', d:'굽힌 고관절을 펴는 동작(햄스트링 기능)' },
+    { t:'2관절근', d:'고관절+무릎 모두 지나는 근육' },
+  ],
+  '인대·연골·건의 역할 차이는?': [
+    { t:'인대(Ligament)', d:'뼈와 뼈를 잇는 조직(관절 안정화)' },
+    { t:'건(Tendon)', d:'근육의 힘을 뼈에 전달하는 힘줄' },
+    { t:'연골(Cartilage)', d:'관절면 보호·충격 흡수·마찰 감소' },
+  ],
+  '흡기 근육과 호기 근육을 설명하시오': [
+    { t:'횡격막', d:'수축하면 흉강이 넓어져 숨이 들어오는 주 흡기근' },
+    { t:'흡기근', d:'들숨을 만드는 근육(횡격막·외늑간근)' },
+    { t:'호기근', d:'강제 날숨에 쓰는 근육(복근류)' },
+  ],
+  '힙 어브덕션(고관절 외전) 시 사용되는 근육은?': [
+    { t:'고관절 외전', d:'다리를 몸 바깥으로 벌리는 동작' },
+    { t:'중둔근', d:'고관절 외전의 주동근(엉덩이 측면)' },
+    { t:'대퇴근막장근(TFL)', d:'외전·내회전을 보조하는 근육' },
+  ],
+  '데드리프트 시 심부 안정화 근육은?': [
+    { t:'다열근', d:'척추 분절을 안정화하는 심부 근육' },
+    { t:'복횡근', d:'코어를 감싸 복압을 만드는 가장 깊은 복근' },
+    { t:'코어 4요소', d:'다열근·복횡근·골반저근·횡격막' },
+  ],
+  '어깨 내회전·외회전 근육은?': [
+    { t:'내회전', d:'팔을 안으로 돌림(견갑하근 주동)' },
+    { t:'외회전', d:'팔을 밖으로 돌림(극하근 주동)' },
+    { t:'회전근개', d:'어깨를 안정화하는 4개 근육' },
+  ],
+
 };
 
 // ════════════════════════════════════════
