@@ -96,20 +96,42 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 #card.blind .ck-sum-txt{filter:blur(6px);user-select:none;}
 #card.blind .ck-summary.show .ck-sum-txt,#card.allopen .ck-sum-txt{filter:none;}
 
-/* ── 답안 : 2×2 그리드 ── */
-.ck-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:10px 10px 4px;}
-.ci{border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;cursor:pointer;background:var(--surface);transition:border-color .13s,background .13s;font-size:14px;font-weight:700;color:var(--text);line-height:1.4;}
+/* ── 답안 (아코디언 기본) ── */
+.ck-grid{display:flex;flex-direction:column;gap:6px;padding:10px 10px 4px;}
+.ci{border:1.5px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;background:var(--surface);transition:border-color .13s,background .13s;}
 .ci:hover{border-color:var(--cc);}
-.ci.open{border-color:var(--cc);background:color-mix(in srgb,var(--cc) 8%,transparent);color:var(--cc);}
-.ci.span2{grid-column:1/-1;}
-.ci-n{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--cc);display:block;margin-bottom:3px;}
-.ci-detail{margin:0 10px 8px;padding:12px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-size:13px;color:var(--text-md);line-height:1.65;display:none;}
+.ci.open{border-color:var(--cc);background:color-mix(in srgb,var(--cc) 8%,transparent);}
+.ci-head{display:flex;align-items:center;gap:10px;padding:13px 14px;}
+.ci-n{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--cc);flex-shrink:0;}
+.ci-kw{flex:1;font-size:14.5px;font-weight:700;line-height:1.4;color:var(--text);transition:filter .2s;word-break:keep-all;}
+#card.blind .ci-kw{filter:blur(6px);user-select:none;}
+#card.blind .ci.open .ci-kw,#card.allopen .ci-kw{filter:none;}
+.ci-chev{font-size:11px;color:var(--text-dim);flex-shrink:0;transition:transform .2s;}
+.ci.open .ci-chev{transform:rotate(180deg);}
+.ci-full{max-height:0;overflow:hidden;font-size:13px;color:var(--text-md);line-height:1.65;padding:0 14px;transition:max-height .25s ease,padding .25s ease;word-break:keep-all;}
+.ci.open .ci-full,#card.allopen .ci-full{max-height:400px;padding:0 14px 13px;}
+.ci-full em{font-style:normal;font-weight:700;color:var(--cc);}
+.ci-full .arrow{color:var(--cc);font-weight:700;}
+/* 그리드 모드 오버라이드 */
+#card.grid-mode .ck-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+#card.grid-mode .ci{padding:10px 12px;overflow:hidden;}
+#card.grid-mode .ci.span2{grid-column:1/-1;}
+#card.grid-mode .ci.open{color:var(--cc);}
+#card.grid-mode .ci-head{flex-direction:column;align-items:flex-start;gap:2px;padding:0;}
+#card.grid-mode .ci-n{font-size:11px;}
+#card.grid-mode .ci-kw{font-size:13px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;transition:none;}
+#card.grid-mode .ci-chev{display:none;}
+#card.grid-mode .ci-full{display:none !important;}
+#card.blind.grid-mode .ci-kw{filter:blur(6px);user-select:none;}
+#card.blind.grid-mode .ci.open .ci-kw,#card.allopen.grid-mode .ci-kw{filter:none;}
+/* 그리드 상세박스 */
+.ci-detail{margin:0 10px 8px;padding:12px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-size:13px;color:var(--text-md);line-height:1.65;display:none;word-break:keep-all;}
 .ci-detail.show{display:block;}
 .ci-detail em{font-style:normal;font-weight:700;color:var(--cc);}
 .ci-detail .arrow{color:var(--cc);font-weight:700;}
-#card.blind .ci{filter:blur(6px);user-select:none;}
-#card.blind .ci.open,#card.allopen .ci{filter:none;}
-#card.allopen .ci-detail{display:block;}
+/* 레이아웃 토글 버튼 */
+.ck-layout-btn{font-size:11px;font-weight:600;padding:5px 9px;border:1.5px solid var(--border);border-radius:7px;background:transparent;color:var(--text-md);cursor:pointer;flex-shrink:0;transition:all .13s;}
+.ck-layout-btn:hover,.ck-layout-btn.active{border-color:var(--cc);color:var(--cc);background:color-mix(in srgb,var(--cc) 8%,transparent);}
 
 .ck-bottom{border-top:1px solid var(--border);}
 .ck-bottom-row{display:flex;}
@@ -3495,6 +3517,7 @@ let blurOn = false;
 let timerSec = 30, timerInt = null, timerActive = false;
 let wrongSet = new Set(JSON.parse(localStorage.getItem('bbWrong') || '[]'));
 let examDateStr = localStorage.getItem('examDate') || '2026-06-27';
+let itemLayout = localStorage.getItem('bbLayout') || 'accordion';
 
 const SUBS_GUL = ['운동생리학','스포츠영양학','기능해부학','트레이닝론','도핑방지','스포츠안전','스포츠인권','생활체육'];
 const SUBS_SIL = ['동작','포징'];
@@ -3591,12 +3614,8 @@ function render(){
 
   const w = wrongSet.has(card.q);
 
-  // 답안 2×2 그리드
-  const _tot = card.items.length;
-  const grid = card.items.map((it,idx)=>{
-    const span = (_tot%2===1 && idx===_tot-1) ? ' span2' : '';
-    return `<div class="ci${span}" onclick="tapItem(${idx})" data-full="${it.t.replace(/"/g,'&quot;')}">${it.n}</div>`;
-  }).join('');
+  // 답안 항목 HTML 빌드
+  const grid = buildItemsHtml(card);
 
   const gloss = (typeof GLOSSARY!=='undefined') ? GLOSSARY[card.q] : null;
   const hasGloss = gloss && gloss.length;
@@ -3605,7 +3624,7 @@ function render(){
   const prinHtml = buildPrinciple(card);
 
   cardEl.style.setProperty('--cc', color);
-  cardEl.className = blurOn ? 'blind' : '';
+  cardEl.className = [blurOn?'blind':'', itemLayout==='grid'?'grid-mode':''].filter(Boolean).join(' ');
   cardEl.innerHTML = `
     <div class="ck-q" onclick="revealAll()">
       <span class="ck-q-txt">${card.q}</span>
@@ -3615,6 +3634,7 @@ function render(){
       <button class="ck-blind-btn${blurOn?' on':''}" onclick="toggleBlind();event.stopPropagation();">${blurOn?'🫣 가리는 중':'👁 답 가리기'}</button>
       <button class="ck-blind-btn${w?' on':''}" onclick="toggleWrong();event.stopPropagation();" style="${w?'border-color:#f43f5e;color:#f43f5e;background:color-mix(in srgb,#f43f5e 13%,transparent);':''}">${w?'❌ 오답됨':'❌ 오답'}</button>
       <button class="ck-timer-btn" id="timerBtn" onclick="startTimer();event.stopPropagation();">⏱ 30초</button>
+      <button class="ck-layout-btn${itemLayout==='grid'?' active':''}" id="layoutBtn" onclick="toggleItemLayout();event.stopPropagation();">${itemLayout==='grid'?'☰ 목록':'⊞ 그리드'}</button>
     </div>
     <div class="ck-summary">
       <span class="ck-sum-lbl">요약</span>
@@ -3633,6 +3653,31 @@ function render(){
     </div>`:''}
   `;
   cardEl.style.animation='none'; cardEl.offsetHeight; cardEl.style.animation='';
+}
+
+// ── 답안 항목 HTML 빌더 ──
+function buildItemsHtml(card){
+  const tot = card.items.length;
+  return card.items.map((it,idx)=>{
+    const kw = extractKw(it.t);
+    const span = (tot%2===1 && idx===tot-1) ? ' span2' : '';
+    return `<div class="ci${span}" onclick="tapItem(${idx})"><div class="ci-head"><span class="ci-n">${it.n}</span><span class="ci-kw">${kw}</span><span class="ci-chev">▾</span></div><div class="ci-full">${it.t}</div></div>`;
+  }).join('');
+}
+
+// ── 레이아웃 전환 (아코디언 ↔ 그리드) ──
+function toggleItemLayout(){
+  itemLayout = itemLayout==='accordion' ? 'grid' : 'accordion';
+  localStorage.setItem('bbLayout', itemLayout);
+  const c=document.getElementById('card');
+  c.classList.toggle('grid-mode', itemLayout==='grid');
+  c.classList.remove('allopen');
+  c.querySelectorAll('.ci').forEach(e=>e.classList.remove('open'));
+  const det=c.querySelector('.ci-detail');
+  if(det){det.classList.remove('show');det.innerHTML='';}
+  const s=c.querySelector('.ck-summary');if(s)s.classList.remove('show');
+  const btn=document.getElementById('layoutBtn');
+  if(btn){btn.classList.toggle('active',itemLayout==='grid');btn.textContent=itemLayout==='grid'?'☰ 목록':'⊞ 그리드';}
 }
 
 // ── 원리 설명 구성 (기존 데이터만 사용, 가독성 정리) ──
@@ -3656,30 +3701,42 @@ function buildPrinciple(card){
 // ── 카드 상호작용 ──
 function tapItem(idx){
   const c=document.getElementById('card');
-  const cells=c.querySelectorAll('.ci');
-  const det=c.querySelector('.ci-detail');
-  if(!det)return;
-  const cell=cells[idx];
-  const was=cell.classList.contains('open');
-  cells.forEach(e=>e.classList.remove('open'));
-  if(was){det.classList.remove('show');det.innerHTML='';}
-  else{cell.classList.add('open');det.innerHTML=cell.dataset.full||'';det.classList.add('show');}
+  if(itemLayout==='grid'){
+    const cells=c.querySelectorAll('.ci');
+    const det=c.querySelector('.ci-detail');
+    if(!det)return;
+    const was=cells[idx]&&cells[idx].classList.contains('open');
+    cells.forEach(e=>e.classList.remove('open'));
+    if(was){det.classList.remove('show');det.innerHTML='';}
+    else if(cells[idx]){
+      cells[idx].classList.add('open');
+      det.innerHTML=cells[idx].querySelector('.ci-full')?.innerHTML||'';
+      det.classList.add('show');
+    }
+  } else {
+    const ci=c.querySelectorAll('.ci')[idx];
+    if(ci) ci.classList.toggle('open');
+  }
 }
 function revealAll(){
   const c=document.getElementById('card');
   const on=c.classList.toggle('allopen');
   const cells=c.querySelectorAll('.ci');
-  const det=c.querySelector('.ci-detail');
   cells.forEach(e=>e.classList.toggle('open',on));
-  if(det){
-    if(on){
-      let h='';
-      cells.forEach((cell,i)=>{
-        const sep=i<cells.length-1?'border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px;':'';
-        h+=`<div style="${sep}"><strong style="color:var(--cc)">${cell.textContent}</strong><br><span style="font-size:13px;color:var(--text-md)">${cell.dataset.full||''}</span></div>`;
-      });
-      det.innerHTML=h; det.classList.add('show');
-    } else { det.innerHTML=''; det.classList.remove('show'); }
+  if(itemLayout==='grid'){
+    const det=c.querySelector('.ci-detail');
+    if(det){
+      if(on){
+        let h='';
+        cells.forEach((cell,i)=>{
+          const kw=cell.querySelector('.ci-kw')?.textContent||'';
+          const full=cell.querySelector('.ci-full')?.innerHTML||'';
+          const sep=i<cells.length-1?'border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px;':'';
+          h+=`<div style="${sep}"><strong style="color:var(--cc)">${kw}</strong><br><span style="font-size:13px;color:var(--text-md)">${full}</span></div>`;
+        });
+        det.innerHTML=h; det.classList.add('show');
+      } else {det.innerHTML='';det.classList.remove('show');}
+    }
   }
   const s=c.querySelector('.ck-summary');
   if(s) s.classList.toggle('show',on);
@@ -3693,7 +3750,8 @@ function toggleBlind(){
   if(blurOn){
     c.classList.remove('allopen');
     c.querySelectorAll('.ci').forEach(e=>e.classList.remove('open'));
-    const det=c.querySelector('.ci-detail');if(det){det.classList.remove('show');det.innerHTML='';}
+    const det=c.querySelector('.ci-detail');
+    if(det){det.classList.remove('show');det.innerHTML='';}
     const s=c.querySelector('.ck-summary');if(s)s.classList.remove('show');
   }
 }
