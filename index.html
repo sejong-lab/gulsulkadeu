@@ -3564,8 +3564,7 @@ function extractLabel(t){
     s = p.split(/[—:→·,]/)[0].trim();
   }
   s = s.replace(/\s*\([^)]*\)/g,'').trim();
-  const w = s.split(/\s+/);
-  return w.length > 2 ? w.slice(0,2).join(' ') : (s||'—');
+  return s.split(/\s+/)[0] || '—';
 }
 
 // ── 필터 ──
