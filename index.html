@@ -3656,6 +3656,450 @@ const GLOSSARY = {
 };
 
 
+// ════════════════════════════════════════
+//  메인 플래시카드 (구술/실기 통합 카드)
+// ════════════════════════════════════════
+let filterMode = '전체';
+let filterSub  = 'all';
+let filteredCards = [...ALL_CARDS];
+let currentIndex = 0;
+let blurOn = false;
+let timerSec = 30, timerInt = null, timerActive = false;
+let wrongSet = new Set(JSON.parse(localStorage.getItem('bbWrong') || '[]'));
+let examDateStr = localStorage.getItem('examDate') || '2026-06-27';
+let itemLayout = localStorage.getItem('bbLayout') || 'accordion';
+
+const SUBS_GUL = ['운동생리학','스포츠영양학','기능해부학','트레이닝론','도핑방지','스포츠안전','스포츠인권','생활체육'];
+const SUBS_SIL = ['동작','포징'];
+
+// ── 유형/과목 매핑 ──
+function cardType(c){
+  if(c.cat==='규정' && ['IFBB 종목','IFBB 복장','IFBB 규정'].includes(c.sub)) return '실기';
+  if(c.cat==='트레이닝' && c.sub==='운동 동작') return '실기';
+  return '구술';
+}
+function cardSubject(c){
+  if(cardType(c)==='실기') return c.cat==='트레이닝' ? '동작' : '포징';
+  if(c.cat==='생리학') return '운동생리학';
+  if(c.cat==='영양학') return '스포츠영양학';
+  if(c.cat==='해부학') return '기능해부학';
+  if(c.cat==='트레이닝') return '트레이닝론';
+  if(c.cat==='규정'){
+    if(c.sub==='도핑관리') return '도핑방지';
+    if(c.sub==='응급처치') return '스포츠안전';
+    if(c.sub.indexOf('윤리')>=0) return '스포츠인권';
+    if(c.sub==='생활체육') return '생활체육';
+  }
+  return c.cat;
+}
+function extractKw(t){
+  const m = t.match(/<em>(.*?)<\/em>/);
+  if(m) return m[1];
+  let plain = t.replace(/<[^>]+>/g,'').trim();
+  let kw = plain.split(/[—:→·]/)[0].trim();
+  if(kw.length>22) kw = kw.slice(0,20)+'…';
+  return kw || plain.slice(0,20);
+}
+function extractLabel(t){
+  const em = t.match(/<em>(.*?)<\/em>/);
+  let s = em ? em[1].replace(/<[^>]+>/g,'') : '';
+  if(!s){
+    let p = t.replace(/<[^>]+>/g,'').trim();
+    p = p.replace(/^[^:：]+[：:]\s*/,'');
+    s = p.split(/[—:→·,]/)[0].trim();
+  }
+  s = s.replace(/\s*\([^)]*\)/g,'').trim();
+  const w = s.split(/\s+/).filter(Boolean);
+  for(const word of w){ if(!/적인$|스러운$|적$/.test(word)) return word; }
+  return w[0]||'—';
+}
+
+// ── 필터 ──
+function setFilterMode(mode, el){
+  filterMode = mode; filterSub = 'all';
+  document.querySelectorAll('.filter-main .btn-flt').forEach(b=>b.classList.remove('act'));
+  el.classList.add('act');
+  buildSubFilter(); applyFilter();
+}
+function buildSubFilter(){
+  const row = document.getElementById('subFilterRow');
+  let subs = null;
+  if(filterMode==='구술') subs = SUBS_GUL;
+  else if(filterMode==='실기') subs = SUBS_SIL;
+  if(!subs){ row.innerHTML=''; return; }
+  row.innerHTML = `<button class="btn-sub act" onclick="setSubFilter('all',this)">전체</button>` +
+    subs.map(s=>`<button class="btn-sub" onclick="setSubFilter('${s}',this)">${s}</button>`).join('');
+}
+function setSubFilter(sub, el){
+  filterSub = sub;
+  document.querySelectorAll('#subFilterRow .btn-sub').forEach(b=>b.classList.remove('act'));
+  el.classList.add('act');
+  applyFilter();
+}
+function applyFilter(){
+  filteredCards = ALL_CARDS.filter(c=>{
+    if(filterMode!=='전체' && cardType(c)!==filterMode) return false;
+    if(filterSub!=='all'   && cardSubject(c)!==filterSub) return false;
+    return true;
+  });
+  currentIndex = 0; blurOn = false; resetTimer(); render();
+}
+
+// ── 렌더 ──
+function render(){
+  const total = filteredCards.length;
+  const fill  = document.getElementById('progressFill');
+  const ptxt  = document.getElementById('progressText');
+  const psub  = document.getElementById('progSubject');
+  const pstar = document.getElementById('progStars');
+  const cardEl= document.getElementById('card');
+
+  if(!total){
+    cardEl.innerHTML = `<div class="card-empty">해당 카드가 없습니다.</div>`;
+    if(fill) fill.style.width='0%';
+    if(ptxt) ptxt.textContent='0 / 0';
+    if(psub){ psub.textContent = filterSub!=='all' ? filterSub : filterMode; psub.style.borderLeftColor='var(--accent)'; }
+    if(pstar) pstar.textContent='';
+    document.getElementById('prevBtn').disabled=true;
+    document.getElementById('nextBtn').disabled=true;
+    return;
+  }
+
+  const card  = filteredCards[currentIndex];
+  const color = CAT_COLORS[card.cat] || '#4f5de8';
+
+  if(fill){ fill.style.width = `${((currentIndex+1)/total)*100}%`; fill.style.background=color; }
+  if(ptxt) ptxt.textContent = `${currentIndex+1} / ${total}`;
+  if(psub){ psub.innerHTML = `<span class="ps-cat" style="color:${color}">${card.cat}</span><span class="ps-sub">(${card.sub})</span>`; psub.style.borderLeftColor = color; }
+  if(pstar) pstar.textContent = card.freq ? '★'.repeat(card.freq) : '';
+  document.getElementById('prevBtn').disabled = currentIndex===0;
+  document.getElementById('nextBtn').disabled = currentIndex===total-1;
+
+  const w = wrongSet.has(card.q);
+
+  // 답안 항목 HTML 빌드
+  const grid = buildItemsHtml(card);
+
+  const gloss = (typeof GLOSSARY!=='undefined') ? GLOSSARY[card.q] : null;
+  const hasGloss = gloss && gloss.length;
+  const glossHtml = hasGloss ? gloss.map(g=>`<div class="gloss-item"><span class="gloss-term">${g.t}</span><span class="gloss-def">${g.d}</span></div>`).join('') : '';
+  const hasPrin = (card.extra && card.extra.trim()) || (card.flow && card.flow.length);
+  const prinHtml = buildPrinciple(card);
+
+  cardEl.style.setProperty('--cc', color);
+  cardEl.className = [blurOn?'blind':'', itemLayout==='grid'?'grid-mode':''].filter(Boolean).join(' ');
+  cardEl.innerHTML = `
+    <div class="ck-q" onclick="revealAll()">
+      <span class="ck-q-txt">${card.q}</span>
+      <span class="ck-q-hint">전체공개</span>
+    </div>
+    <div class="ck-ctrl">
+      <button class="ck-blind-btn${blurOn?' on':''}" onclick="toggleBlind();event.stopPropagation();">${blurOn?'🫣 가리는 중':'👁 답 가리기'}</button>
+      <button class="ck-blind-btn${w?' on':''}" onclick="toggleWrong();event.stopPropagation();" style="${w?'border-color:#f43f5e;color:#f43f5e;background:color-mix(in srgb,#f43f5e 13%,transparent);':''}">${w?'❌ 오답됨':'❌ 오답'}</button>
+      <button class="ck-timer-btn" id="timerBtn" onclick="startTimer();event.stopPropagation();">⏱ 30초</button>
+      <button class="ck-layout-btn${itemLayout==='grid'?' active':''}" id="layoutBtn" onclick="toggleItemLayout();event.stopPropagation();">${itemLayout==='grid'?'☰ 목록':'⊞ 그리드'}</button>
+    </div>
+    <div class="ck-summary">
+      <span class="ck-sum-lbl">요약</span>
+      <span class="ck-sum-txt">${card.summary}</span>
+    </div>
+    <div class="ck-grid">${grid}</div>
+    <div class="ci-detail" id="ciDetail"></div>
+    ${(hasGloss||hasPrin)?`
+    <div class="ck-bottom">
+      <div class="ck-bottom-row">
+        ${hasGloss?`<button class="ck-def-btn" id="defBtn" onclick="toggleDefPanel()"${hasPrin?'':' style="border-right:none;"'}>용어 정의 ▼</button>`:''}
+        ${hasPrin?`<button class="ck-prin-btn" id="prinBtn" onclick="togglePrinPanel()"${hasGloss?'':' style="border-right:none;"'}>원리 설명 ▼</button>`:''}
+      </div>
+      ${hasGloss?`<div class="ck-panel" id="defPanel">${glossHtml}</div>`:''}
+      ${hasPrin?`<div class="ck-panel" id="prinPanel">${prinHtml}</div>`:''}
+    </div>`:''}
+  `;
+  cardEl.style.animation='none'; cardEl.offsetHeight; cardEl.style.animation='';
+}
+
+// ── 답안 항목 HTML 빌더 ──
+function buildItemsHtml(card){
+  const tot = card.items.length;
+  return card.items.map((it,idx)=>{
+    const kw = extractKw(it.t);
+    const lbl = extractLabel(it.t);
+    const span = (tot%2===1 && idx===tot-1) ? ' span2' : '';
+    return `<div class="ci${span}" onclick="tapItem(${idx})"><div class="ci-head"><span class="ci-n">${it.n}</span><span class="ci-label">${lbl}</span><span class="ci-kw">${kw}</span><span class="ci-chev">▾</span></div><div class="ci-full">${it.t}</div></div>`;
+  }).join('');
+}
+
+// ── 레이아웃 전환 (아코디언 ↔ 그리드) ──
+function toggleItemLayout(){
+  itemLayout = itemLayout==='accordion' ? 'grid' : 'accordion';
+  localStorage.setItem('bbLayout', itemLayout);
+  const c=document.getElementById('card');
+  c.classList.toggle('grid-mode', itemLayout==='grid');
+  c.classList.remove('allopen');
+  c.querySelectorAll('.ci').forEach(e=>e.classList.remove('open'));
+  const det=c.querySelector('.ci-detail');
+  if(det){det.classList.remove('show');det.innerHTML='';}
+  const s=c.querySelector('.ck-summary');if(s)s.classList.remove('show');
+  const btn=document.getElementById('layoutBtn');
+  if(btn){btn.classList.toggle('active',itemLayout==='grid');btn.textContent=itemLayout==='grid'?'☰ 목록':'⊞ 그리드';}
+}
+
+// ── 원리 설명 구성 (기존 데이터만 사용, 가독성 정리) ──
+function buildPrinciple(card){
+  let html = '';
+  if(card.flow && card.flow.length){
+    html += '<div class="prin-flow">' + card.flow.map(f=>
+      f==='→' ? '<span class="pf-arr">→</span>' : `<span class="pf-step">${f}</span>`
+    ).join('') + '</div>';
+  }
+  if(card.extra && card.extra.trim()){
+    const lines = card.extra
+      .split(/\n+/).join(' ')
+      .split(/(?<=[.。])\s+/)
+      .map(s=>s.trim()).filter(Boolean);
+    html += lines.map(s=>`<div class="prin-line">${s}</div>`).join('');
+  }
+  return html;
+}
+
+// ── 카드 상호작용 ──
+function tapItem(idx){
+  const c=document.getElementById('card');
+  if(itemLayout==='grid'){
+    const cells=c.querySelectorAll('.ci');
+    const det=c.querySelector('.ci-detail');
+    if(!det)return;
+    const was=cells[idx]&&cells[idx].classList.contains('open');
+    cells.forEach(e=>e.classList.remove('open'));
+    if(was){det.classList.remove('show');det.innerHTML='';}
+    else if(cells[idx]){
+      cells[idx].classList.add('open');
+      det.innerHTML=cells[idx].querySelector('.ci-full')?.innerHTML||'';
+      det.classList.add('show');
+    }
+  } else {
+    const ci=c.querySelectorAll('.ci')[idx];
+    if(ci) ci.classList.toggle('open');
+  }
+}
+function revealAll(){
+  const c=document.getElementById('card');
+  const on=c.classList.toggle('allopen');
+  const cells=c.querySelectorAll('.ci');
+  cells.forEach(e=>e.classList.toggle('open',on));
+  if(itemLayout==='grid'){
+    const det=c.querySelector('.ci-detail');
+    if(det){
+      if(on){
+        let h='';
+        cells.forEach((cell,i)=>{
+          const kw=cell.querySelector('.ci-kw')?.textContent||'';
+          const full=cell.querySelector('.ci-full')?.innerHTML||'';
+          const sep=i<cells.length-1?'border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px;':'';
+          h+=`<div style="${sep}"><strong style="color:var(--cc)">${kw}</strong><br><span style="font-size:13px;color:var(--text-md)">${full}</span></div>`;
+        });
+        det.innerHTML=h; det.classList.add('show');
+      } else {det.innerHTML='';det.classList.remove('show');}
+    }
+  }
+  const s=c.querySelector('.ck-summary');
+  if(s) s.classList.toggle('show',on);
+}
+function toggleBlind(){
+  blurOn=!blurOn;
+  const c=document.getElementById('card');
+  c.classList.toggle('blind',blurOn);
+  const b=c.querySelector('.ck-blind-btn');
+  if(b){b.classList.toggle('on',blurOn);b.textContent=blurOn?'🫣 가리는 중':'👁 답 가리기';}
+  if(blurOn){
+    c.classList.remove('allopen');
+    c.querySelectorAll('.ci').forEach(e=>e.classList.remove('open'));
+    const det=c.querySelector('.ci-detail');
+    if(det){det.classList.remove('show');det.innerHTML='';}
+    const s=c.querySelector('.ck-summary');if(s)s.classList.remove('show');
+  }
+}
+function toggleDefPanel(){
+  document.getElementById('defBtn').classList.toggle('open');
+  document.getElementById('defPanel').classList.toggle('open');
+}
+function togglePrinPanel(){
+  document.getElementById('prinBtn').classList.toggle('open');
+  document.getElementById('prinPanel').classList.toggle('open');
+}
+
+// ── 타이머 ──
+function startTimer(){
+  const b=document.getElementById('timerBtn'); if(!b)return;
+  if(timerActive){ resetTimer(); return; }
+  timerActive=true; timerSec=30; b.classList.add('running'); updateTimerBtn();
+  timerInt=setInterval(()=>{ timerSec--; updateTimerBtn(); if(timerSec<=0) resetTimer(); },1000);
+}
+function updateTimerBtn(){
+  const b=document.getElementById('timerBtn'); if(!b)return;
+  b.textContent = timerActive ? `⏱ ${timerSec}초` : '⏱ 30초';
+}
+function resetTimer(){
+  clearInterval(timerInt); timerActive=false; timerSec=30;
+  const b=document.getElementById('timerBtn');
+  if(b){ b.classList.remove('running'); b.textContent='⏱ 30초'; }
+}
+
+// ── 이동 ──
+function move(dir){
+  if(!filteredCards.length) return;
+  currentIndex = Math.max(0, Math.min(filteredCards.length-1, currentIndex+dir));
+  resetTimer(); render();
+}
+function shuffle(){
+  if(!filteredCards.length) return;
+  for(let i=filteredCards.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [filteredCards[i],filteredCards[j]]=[filteredCards[j],filteredCards[i]];
+  }
+  currentIndex=0; resetTimer(); render();
+}
+
+// ── 테마 ──
+function toggleTheme(){
+  const dark = document.documentElement.classList.toggle('dark');
+  const t=document.getElementById('themeBtn'); if(t)t.textContent = dark?'☀️':'🌙';
+  localStorage.setItem('theme', dark?'dark':'light');
+}
+
+// ── D-day ──
+function updateDday(){
+  const e=document.getElementById('ddayBadge'); if(!e)return;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const exam=new Date(examDateStr+'T00:00:00');
+  const diff=Math.round((exam-today)/86400000);
+  e.textContent = diff>0 ? `D-${diff}` : (diff===0 ? 'D-DAY' : `D+${-diff}`);
+}
+function openDdayEdit(){
+  document.getElementById('ddayInput').value = examDateStr;
+  document.getElementById('ddayModal').classList.add('open');
+}
+function closeDdayEdit(){ document.getElementById('ddayModal').classList.remove('open'); }
+function saveDday(){
+  const v=document.getElementById('ddayInput').value;
+  if(v){ examDateStr=v; localStorage.setItem('examDate',v); updateDday(); }
+  closeDdayEdit();
+}
+
+// ── 오답노트 ──
+function toggleWrong(){
+  const c=filteredCards[currentIndex]; if(!c)return;
+  if(wrongSet.has(c.q)) wrongSet.delete(c.q); else wrongSet.add(c.q);
+  localStorage.setItem('bbWrong', JSON.stringify([...wrongSet]));
+  updateWrongBadge(); render();
+}
+function updateWrongBadge(){
+  const e=document.getElementById('wrongCountBadge'); if(e)e.textContent=wrongSet.size;
+}
+function openWrongMode(){
+  const cards = ALL_CARDS.filter(c=>wrongSet.has(c.q));
+  document.getElementById('cmTitle').textContent = `❌ 오답노트 (${cards.length})`;
+  const list = document.getElementById('cmCardList');
+  if(!cards.length){
+    list.innerHTML = `<div class="cm-empty">오답으로 표시한 카드가 없습니다.<br><span style="font-size:11px;">카드의 ❌ 버튼을 눌러 추가하세요.</span></div>`;
+  } else {
+    list.innerHTML = cards.map(c=>{
+      const items = c.items.map(it=>`<div style="margin-top:4px;">${it.n} ${it.t}</div>`).join('');
+      const color = CAT_COLORS[c.cat]||'#4f5de8';
+      return `<div class="cm-card-item" style="border-color:color-mix(in srgb,#f43f5e 35%,transparent);">
+        <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:${color};margin-bottom:5px;">${c.cat} · ${cardSubject(c)}</div>
+        <div class="cm-card-q">${c.q}</div>
+        <div class="cm-card-a"><b>요약:</b> ${c.summary}${items}</div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('cardModeOverlay').style.display='block';
+}
+function closeCardMode(){ document.getElementById('cardModeOverlay').style.display='none'; }
+
+// ── 키보드 ──
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('examOverlay').style.display==='block') return;
+  if(document.getElementById('cardModeOverlay').style.display==='block') return;
+  if(document.getElementById('ddayModal').classList.contains('open')) return;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown') move(1);
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp') move(-1);
+  if(e.key===' '){ e.preventDefault(); revealAll(); }
+});
+
+// ── 초기화 ──
+function init(){
+  if(localStorage.getItem('theme')==='dark'){
+    document.documentElement.classList.add('dark');
+    const t=document.getElementById('themeBtn'); if(t)t.textContent='☀️';
+  }
+  updateDday(); setInterval(updateDday, 60000);
+  updateWrongBadge();
+  applyFilter();
+}
+document.addEventListener('DOMContentLoaded', init);
+
+
+// ── 스타일 추가 ──
+const examStyle = document.createElement('style');
+examStyle.textContent = `
+  .tab-exam { border-color: #f43f5e44 !important; color: #f43f5e !important; }
+  .tab-exam:hover, .tab-exam.active { background: #f43f5e !important; border-color: #f43f5e !important; color: #fff !important; }
+  .exam-mode-btn {
+    font-family: var(--mono); font-size: 11px; font-weight: 700; padding: 6px 14px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-muted);
+    border-radius: 8px; cursor: pointer; transition: all .15s; white-space: nowrap;
+  }
+  .exam-mode-btn:hover { border-color: var(--sec-color, #f43f5e); color: var(--sec-color, #f43f5e); }
+  .exam-mode-btn.active-mode { background: var(--sec-color, #f43f5e); border-color: var(--sec-color, #f43f5e); color: #fff; }
+  .exam-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 13px 14px; margin-bottom: 10px; cursor: pointer; transition: border-color .15s;
+  }
+  .exam-item:hover { border-color: var(--sec-color, #f43f5e); }
+  .exam-item.checked { border-color: #22c55e55; background: #22c55e08; }
+  .exam-item.wrong-item { border-color: #f43f5e55; background: #f43f5e08; }
+  .exam-item-header { display: flex; align-items: flex-start; gap: 10px; }
+  .exam-item-num { font-family: var(--mono); font-size: 10px; color: var(--text-dim); min-width: 22px; margin-top:2px; flex-shrink:0; }
+  .exam-item-q { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.5; flex: 1; word-break:keep-all; }
+  .exam-item-group { font-size: 10px; color: var(--text-dim); margin-top: 4px; font-family: var(--mono); }
+  .exam-item-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; white-space: nowrap; margin-top:1px; flex-shrink:0; }
+  .badge-ok { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e44; }
+  .badge-wrong { background: #f43f5e22; color: #f43f5e; border: 1px solid #f43f5e44; }
+  .exam-answer-expand { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); line-height: 1.75; white-space: pre-line; display: none; }
+  .exam-tip { margin-top: 10px; padding: 8px 10px; background: color-mix(in srgb, var(--sec-color,#f43f5e) 8%, transparent); border-left: 2px solid var(--sec-color,#f43f5e); border-radius: 4px; font-size: 11px; color: var(--text-muted); white-space:normal; }
+  .btn-ok { background: #22c55e22; border: 1px solid #22c55e55; color: #22c55e; flex:1; padding:8px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:var(--sans); }
+  .btn-wrong-mark { background: #f43f5e22; border: 1px solid #f43f5e55; color: #f43f5e; flex:1; padding:8px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:var(--sans); }
+  .group-header { font-size: 11px; font-weight: 700; color: var(--text-muted); margin: 16px 0 8px; font-family: var(--mono); padding: 4px 0; border-bottom: 1px solid var(--border); text-transform:uppercase; letter-spacing:.06em; }
+  #sectionBtn0:hover, #sectionBtn1:hover, #sectionBtn2:hover, #sectionBtn3:hover { border-color: var(--border); box-shadow: 0 2px 12px rgba(0,0,0,.15); }
+  .s3f {
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    padding: 4px 10px; border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text-muted); border-radius: 6px; cursor: pointer; white-space: nowrap;
+    transition: all .15s;
+  }
+  .s3f:hover { border-color: #a78bfa; color: #a78bfa; }
+    /* ── 예상문제 통합 필터바 버튼 스타일 ── */
+  .xfl { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--text-dim); letter-spacing: .04em; flex-shrink: 0; white-space: nowrap; }
+  .xfb { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 4px 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text-muted); cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: all .15s; }
+  .xfb:hover { border-color: var(--sec-color, #3ecf8e); color: var(--text); }
+  .xfb.active-xf { background: var(--sec-color, #3ecf8e); border-color: var(--sec-color, #3ecf8e); color: #fff; }
+  .xfc { font-family: var(--mono); font-size: 9px; font-weight: 700; margin-left: 3px; opacity: .85; }
+.s3f.active-s3f { background: #a78bfa; border-color: #a78bfa; color: #fff; }
+`;
+document.head.appendChild(examStyle);
+
+// ════════════════════════════════════════
+//  섹션 정의
+// ════════════════════════════════════════
+const SECTIONS = [
+  { id: 0, name: '✏️ 개정 문제',      color: '#f43f5e', key: 's0' },
+  { id: 1, name: '백현종 심판 예상',   color: '#f0a030', key: 's1' },
+  { id: 2, name: '2026 대학별 문제',        color: '#3ecf8e', key: 's2' },
+  { id: 3, name: '2025 대학별 문제',   color: '#a78bfa', key: 's3' },
+];
+
+// 섹션별 문제 배열
 const SECTION_QUESTIONS = [
   // ── 섹션 0: 응용문제 ──
   [
@@ -5927,7 +6371,7 @@ BUT 고용량 보충제 장기 복용 시 독성 가능
 ② Side Chest (사이드 체스트)
 ③ Back Double Biceps (백 더블 바이셉스)
 ④ Abdominal & Thighs (복근 & 대퇴)
-⑤ Classic Pose of Athlete's Choice (선수 개인 선택 클래식 포즈)
+⑤ Classic Pose of Athlete\'s Choice (선수 개인 선택 클래식 포즈)
    — 전면만 허용 / 머스큘러 포즈 금지 / 측면·후면 없음 (카드 [33] 참고)
 
 ✔ 보디빌딩 7포즈 중 Front/Back Lat Spread·Side Triceps는 사용하지 않습니다
@@ -7439,7 +7883,7 @@ RDL과 차이: 무릎 굴곡 더 적음 → 햄스트링 스트레치 극대화
 
 【결선】
 ① 위 규정포즈 4가지 재실시 + 포즈다운
-② 개인 발표 — 자유포즈 대신 본인이 준비한 "클래식 포즈(Athlete's Choice)" 1개를 전면에서만 선보임 (머스큘러 포즈 금지)
+② 개인 발표 — 자유포즈 대신 본인이 준비한 "클래식 포즈(Athlete\'s Choice)" 1개를 전면에서만 선보임 (머스큘러 포즈 금지)
 
 【체중 제한】
 신장에 따른 체중 상한선 적용 (고전적 비율 유지 목적)
@@ -7828,7 +8272,7 @@ RDL과 차이: 무릎 굴곡 더 적음 → 햄스트링 스트레치 극대화
 ② Side Chest (사이드 체스트)
 ③ Back Double Biceps (뒤 이두)
 ④ Abdominal & Thighs (복근 & 허벅지)
-⑤ Classic Pose of Athlete's Choice — 본인이 준비한 클래식 포즈 (전면만, 머스큘러 포즈 금지)
+⑤ Classic Pose of Athlete\'s Choice — 본인이 준비한 클래식 포즈 (전면만, 머스큘러 포즈 금지)
 
 복장: 측면폭 15cm 이상 단색 반바지, 맨발
 ✔ 보디빌딩 7포즈와 달리 Lat Spread·Side Triceps는 포함되지 않음`,
