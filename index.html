@@ -98,20 +98,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .prog-subject .ps-sub{font-size:11px;font-weight:500;color:var(--text-dim);margin-left:2px;}
 .prog-subject .ps-cat{font-weight:800;}
 .prog-subject .ps-sub{font-weight:500;color:var(--text-md);font-size:13px;margin-left:3px;}
-.prog-right{width:50%;flex-shrink:0;display:flex;flex-direction:column;gap:5px;}
 .prog-bar{width:100%;height:4px;background:var(--border);border-radius:3px;overflow:hidden;}
 .prog-fill{height:100%;background:var(--cc);border-radius:3px;transition:width .3s ease;}
-.prog-meta-row{display:flex;align-items:center;justify-content:space-between;}
 .prog-stars{font-size:12px;color:var(--sil);letter-spacing:1px;}
 .prog-count{font-family:var(--mono);font-size:11px;color:var(--text-dim);flex-shrink:0;}
 
 /* ── 카드 ── */
-#card{margin:8px 10px 0;background:var(--surface);border:1.5px solid var(--border);border-top:3px solid var(--cc);border-radius:13px;overflow:hidden;--cc:var(--accent);}
-.ck-hdr{display:flex;align-items:center;gap:6px;padding:8px 12px 6px;border-bottom:1px solid var(--border);}
-.ck-cat{font-family:var(--mono);font-size:10px;font-weight:700;color:#fff;background:var(--cc);border-radius:5px;padding:2px 7px;flex-shrink:0;}
-.ck-sub{font-size:11px;color:var(--text-md);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ck-freq{font-size:10px;color:var(--sil);flex-shrink:0;}
-.ck-num{font-family:var(--mono);font-size:10px;color:var(--text-dim);flex-shrink:0;}
+#card{margin:8px 10px 0;padding-bottom:12px;background:var(--surface);border:1.5px solid var(--border);border-top:3px solid var(--cc);border-radius:13px;overflow:hidden;--cc:var(--accent);}
 
 .ck-q{display:flex;align-items:center;gap:9px;padding:12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .13s;}
 .ck-q:hover{background:var(--surface2);}
@@ -130,7 +123,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .ck-sum-lbl{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);border-radius:4px;padding:2px 6px;height:fit-content;flex-shrink:0;text-transform:uppercase;}
 .ck-sum-txt{font-size:13px;line-height:1.5;color:var(--text-md);flex:1;transition:filter .2s;}
 #card.blind .ck-sum-txt{filter:blur(6px);user-select:none;}
-.ck-longform{white-space:pre-wrap;font-size:14px;line-height:1.7;color:var(--text);padding:2px 0;word-break:break-word;}
+.ck-longform{white-space:pre-wrap;font-size:14px;line-height:1.7;color:var(--text);padding:8px 12px 4px;word-break:break-word;}
 .ck-longform .lf-head{font-weight:800;font-size:13.5px;color:var(--cc,#4f5de8);margin:15px 0 7px;padding:3px 0 3px 10px;border-left:3px solid var(--cc,#4f5de8);letter-spacing:-0.2px;}
 .ck-longform .lf-head:first-child{margin-top:2px;}
 .ck-longform .lf-para{font-size:14px;line-height:1.62;color:var(--text);margin:4px 0;}
@@ -143,7 +136,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
 .blind .ck-longform{filter:blur(6px);user-select:none;}
 #card.allopen .ck-longform{filter:none;}
-.ck-tip{margin-top:12px;padding:10px 12px;background:color-mix(in srgb,var(--sil) 12%,transparent);border-left:3px solid var(--sil);border-radius:8px;font-size:13px;line-height:1.55;color:var(--text-md);}
+.ck-tip{margin:12px 12px 0;padding:10px 12px;background:color-mix(in srgb,var(--sil) 12%,transparent);border-left:3px solid var(--sil);border-radius:8px;font-size:13px;line-height:1.55;color:var(--text-md);}
 #card.blind .ck-summary.show .ck-sum-txt,#card.allopen .ck-sum-txt{filter:none;}
 
 /* ── 답안 (아코디언 기본) ── */
@@ -1962,8 +1955,8 @@ function render(){
   const prinHtml = buildPrinciple(card);
 
   cardEl.style.setProperty('--cc', color);
-  cardEl.className = [blurOn?'blind':'', itemLayout==='grid'?'grid-mode':''].filter(Boolean).join(' ');
   const isLong = !!(card.answer && (''+card.answer).trim());
+  cardEl.className = [blurOn?'blind':'', (!isLong && itemLayout==='grid')?'grid-mode':''].filter(Boolean).join(' ');
   const mainBody = isLong
     ? `<div class="ck-longform">${buildLongform(card.answer)}</div>${card.tip?`<div class="ck-tip">💡 ${card.tip}</div>`:''}`
     : `<div class="ck-summary"><span class="ck-sum-lbl">요약</span><span class="ck-sum-txt">${card.summary}</span></div><div class="ck-grid">${grid}</div>`;
@@ -1976,7 +1969,7 @@ function render(){
       <button class="ck-blind-btn${blurOn?' on':''}" onclick="toggleBlind();event.stopPropagation();">${blurOn?'🫣 가리는 중':'👁 답 가리기'}</button>
       <button class="ck-blind-btn${w?' on':''}" onclick="toggleWrong();event.stopPropagation();" style="${w?'border-color:#f43f5e;color:#f43f5e;background:color-mix(in srgb,#f43f5e 13%,transparent);':''}">${w?'❌ 오답됨':'❌ 오답'}</button>
       <button class="ck-timer-btn" id="timerBtn" onclick="startTimer();event.stopPropagation();">⏱ 30초</button>
-      <button class="ck-layout-btn${itemLayout==='grid'?' active':''}" id="layoutBtn" onclick="toggleItemLayout();event.stopPropagation();">${itemLayout==='grid'?'☰ 목록':'⊞ 그리드'}</button>
+      ${isLong?'':`<button class="ck-layout-btn${itemLayout==='grid'?' active':''}" id="layoutBtn" onclick="toggleItemLayout();event.stopPropagation();">${itemLayout==='grid'?'☰ 목록':'⊞ 그리드'}</button>`}
     </div>
     ${mainBody}
     <div class="ci-detail" id="ciDetail"></div>
@@ -2333,13 +2326,8 @@ document.addEventListener('DOMContentLoaded', init);
   const _rs = document.createElement('style');
   _rs.textContent = `
   .game-bar{display:flex;align-items:center;gap:10px;max-width:480px;margin:0 auto;padding:7px 14px 9px;cursor:pointer;}
-  .gb-lv{font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;}
-  .gb-lv b{font-size:15px;}
-  .gb-xpwrap{flex:1;height:7px;background:var(--surface2);border-radius:999px;overflow:hidden;}
-  .gb-xp{height:100%;width:0%;background:linear-gradient(90deg,var(--gul),var(--accent));border-radius:999px;transition:width .35s;}
-  .gb-streak{font-size:13px;font-weight:700;color:var(--sil);white-space:nowrap;}
   #reviewFltBtn .rc{display:inline-block;min-width:15px;padding:0 4px;margin-left:3px;font-size:10px;font-weight:700;background:var(--gul);color:#06281f;border-radius:999px;line-height:15px;text-align:center;}
-  .srs-bar{margin-top:14px;padding:13px;background:var(--surface2);border-radius:14px;}
+  .srs-bar{margin:14px 12px 0;padding:13px;background:var(--surface2);border-radius:14px;}
   .srs-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;gap:8px;}
   .srs-q{font-size:13px;font-weight:600;color:var(--text-md);}
   .srs-stat{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap;}
@@ -2507,10 +2495,10 @@ const SOCRATIC = {"어깨 내회전·외회전 근육은?": [{"q": "보디빌딩
 (function(){
   const _s2=document.createElement('style');
   _s2.textContent=`
-  .study-tools{display:flex;gap:8px;margin-top:14px;}
+  .study-tools{display:flex;gap:8px;margin:14px 12px 0;}
   .st-btn{flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text-md);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;}
   .st-btn:active{transform:scale(.97);}
-  .st-panel{display:none;margin-top:10px;padding:13px;background:var(--surface2);border-radius:12px;}
+  .st-panel{display:none;margin:10px 12px 0;padding:13px;background:var(--surface2);border-radius:12px;}
   .st-panel.open{display:block;}
   .fey-prompt{font-size:13px;color:var(--text-md);margin-bottom:8px;line-height:1.55;}
   .fey-input{width:100%;box-sizing:border-box;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:9px;font-family:var(--sans);font-size:14px;resize:vertical;}
